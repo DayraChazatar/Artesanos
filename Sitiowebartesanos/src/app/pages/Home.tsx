@@ -142,7 +142,7 @@ export function Home() {
                 tradiciones ancestrales.
               </p>
               <p className="text-gray-700 mb-6">
-                Trabajamos con más de 50 artesanos en todo el país, ofreciendo productos
+                Trabajamos con 50 artesanos de la cuidad de Pasto ofreciendo productos
                 únicos que no encontrarás en ningún otro lugar.
               </p>
               <Button className="bg-orange-600 hover:bg-orange-700" asChild>

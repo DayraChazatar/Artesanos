@@ -57,7 +57,7 @@ export function Navbar({ activeTab, onTabChange }: NavbarProps) {
  
           {/* Izquierda: logo */}
           <Link to="/" className="text-xl font-semibold text-orange-600 whitespace-nowrap flex-shrink-0">
-            Pakari Shop ❤️
+            Pakari Shop 
           </Link>
  
           {/* Centro: tabs artesano O links normales */}
