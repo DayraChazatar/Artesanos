@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { useNavigate } from 'react-router';
+import { useAuth } from '../context/AuthContext';
 import {
   getCategorias, createCategoria, deleteCategoria,
   getProductos,  createProducto,  deleteProducto,
@@ -40,23 +42,68 @@ function StockBadge({ p }: { p: Producto }) {
 
 // ── Topbar ───────────────────────────────────────────────────────────────────
 function Topbar() {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
   return (
     <header className="fixed top-0 left-0 right-0 z-30 h-14 bg-white border-b border-amber-100 flex items-center justify-between px-6 shadow-sm">
       <div className="flex items-center gap-1.5">
         <span className="font-serif text-lg font-bold text-amber-700">Pakari Shop</span>
-        <span className="text-pink-400 text-sm">♥</span>
+        <span className="text-pink-400 text-sm"></span>
       </div>
       <nav>
         <a href="/" className="text-sm text-stone-500 hover:text-amber-700 font-medium transition px-3 py-1.5 rounded-lg hover:bg-amber-50">
           Inicio
         </a>
       </nav>
-      <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 cursor-pointer hover:bg-amber-100 transition">
-        <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center text-white text-xs font-bold">
-          {ARTESANO_NOMBRE.slice(0, 2).toUpperCase()}
-        </div>
-        <span className="text-sm text-stone-700 font-medium hidden sm:block">{ARTESANO_NOMBRE}</span>
-        <span className="w-2 h-2 rounded-full bg-green-400" />
+
+      {/* Menú de usuario */}
+      <div className="relative" ref={menuRef}>
+        <button
+          onClick={() => setOpen(prev => !prev)}
+          className="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-amber-100 bg-amber-50 hover:bg-amber-100 transition"
+        >
+          <div className="w-7 h-7 rounded-full bg-amber-600 flex items-center justify-center text-white text-xs font-bold">
+            {user?.name?.slice(0, 2).toUpperCase()}
+          </div>
+          <span className="text-sm text-stone-700 font-medium hidden sm:block">{user?.name}</span>
+          <span className="w-2 h-2 rounded-full bg-green-400" />
+        </button>
+
+        {open && (
+          <div className="absolute right-0 mt-2 w-52 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+            <div className="px-4 py-3 border-b border-gray-100">
+              <p className="font-semibold text-sm truncate">{user?.name}</p>
+              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              <span className="inline-block mt-1.5 text-xs font-semibold text-orange-600 bg-orange-50 px-2 py-0.5 rounded-full">
+                🧵 Artesano
+              </span>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 transition"
+            >
+              <span>↩</span> Cerrar Sesión
+            </button>
+          </div>
+        )}
       </div>
     </header>
   );
@@ -140,7 +187,7 @@ function ModuloCatalogo({ productos }: { productos: Producto[] }) {
         <h2 className="font-serif text-xl text-amber-800 mb-4">📋 Productos en catálogo</h2>
         <div className="overflow-x-auto rounded-xl border border-amber-100">
           <table className="w-full text-base">
-            <thead className="bg-amber-50 text-xs uppercase tracking-wider text-amber-900/60">
+            <thead className="bg-amber-50 text-sm uppercase tracking-wider text-amber-900/60">
               <tr>{['Código','Lote','Producto','Categoría','Precio neto','IVA','Desc.','Stock','Imagen','Visible'].map(h => <th key={h} className="px-3 py-3 text-left font-semibold">{h}</th>)}</tr>
             </thead>
             <tbody>
@@ -149,8 +196,8 @@ function ModuloCatalogo({ productos }: { productos: Producto[] }) {
                 const imgSrc = imagenes[p.id!];
                 return (
                   <tr key={p.id} className={`border-t border-amber-50 transition ${esVisible ? 'hover:bg-amber-50/50' : 'opacity-40 bg-stone-50'}`}>
-                    <td className="px-3 py-3 font-mono text-xs">{p.codigo_barra || '—'}</td>
-                    <td className="px-3 py-3 text-xs">{p.lote || '—'}</td>
+                    <td className="px-3 py-3 font-mono text-sm">{p.codigo_barra || '—'}</td>
+                    <td className="px-3 py-3 text-sm">{p.lote || '—'}</td>
                     <td className="px-3 py-3 font-semibold">{p.nombre}</td>
                     <td className="px-3 py-3"><Badge color="bg-amber-100 text-amber-800">{p.categoria_nombre ?? '—'}</Badge></td>
                     <td className="px-3 py-3">${Number(p.precio_neto).toLocaleString()}</td>
@@ -394,6 +441,29 @@ function ModuloProductos({ productos, setProductos, categorias, setCategorias }:
     showAlert('Producto eliminado');
   };
 
+    const handleEditProducto = (id: number) => {
+    const producto = productos.find(p => p.id === id);
+    if (!producto) return;
+    setProd({
+      codigo_barra: producto.codigo_barra,
+      lote: producto.lote,
+      nombre: producto.nombre,
+      categoria: producto.categoria,
+      precio_neto: producto.precio_neto,
+      iva: producto.iva,
+      descuento: producto.descuento,
+      valor_descuento: producto.valor_descuento,
+      cantidad: producto.cantidad,
+      stock_minimo: producto.stock_minimo,
+      stock_maximo: producto.stock_maximo,
+      artesano: ARTESANO_ID,
+      colores: producto.colores ?? [],
+      maneja_tallas: producto.maneja_tallas ?? false,
+      tallas: producto.tallas ?? [],
+    });
+    setTabLocal('producto');
+  };
+
   const [cat, setCat] = useState({ nombre: '', descripcion: '' });
 
   const handleAddCategoria = async () => {
@@ -412,6 +482,16 @@ function ModuloProductos({ productos, setProductos, categorias, setCategorias }:
     await deleteCategoria(id);
     setCategorias(prev => prev.filter(c => c.id !== id));
   };
+
+  const handleEditCategoria = (id: number) => {
+  const categoria = categorias.find(c => c.id === id);
+  if (!categoria) return;
+  setCat({
+    nombre: categoria.nombre,
+    descripcion: categoria.descripcion,
+  });
+  setTabLocal('categoria'); // lleva al formulario de categoría
+};
 
   const handleAgregarColor = () => {
     const nombre = colorNombreRef.current?.value.trim() ?? '';
@@ -710,28 +790,28 @@ function ModuloProductos({ productos, setProductos, categorias, setCategorias }:
             <h2 className="font-serif text-xl text-amber-800 mb-4">📦 Productos registrados</h2>
             <div className="overflow-x-auto rounded-xl border border-amber-100">
               <table className="w-full text-sm">
-                <thead className="bg-amber-50 text-xs uppercase tracking-wider text-amber-900/60">
+                <thead className="bg-amber-50 text-sm uppercase tracking-wider text-amber-900/60">
                   <tr>{['Código','Lote','Nombre','Categoría','Precio','IVA','Desc.','Stock','Mín.','Máx.',''].map(h => (
-                    <th key={h} className="px-3 py-3 text-left font-semibold">{h}</th>
+                    <th key={h} className="px-3 py-3 text-left font-semibold text-sm">{h}</th>
                   ))}</tr>
                 </thead>
                 <tbody>
                   {productos.map(p => (
                     <tr key={p.id} className="border-t border-amber-50 hover:bg-amber-50/50">
-                      <td className="px-3 py-3 font-mono text-xs">{p.codigo_barra || '—'}</td>
-                      <td className="px-3 py-3 text-xs">{p.lote || '—'}</td>
+                      <td className="px-3 py-3 font-mono text-sm">{p.codigo_barra || '—'}</td>
+                      <td className="px-3 py-3 text-sm">{p.lote || '—'}</td>
                       <td className="px-3 py-3 font-semibold">{p.nombre}</td>
                       <td className="px-3 py-3"><Badge color="bg-amber-100 text-amber-800">{p.categoria_nombre ?? '—'}</Badge></td>
                       <td className="px-3 py-3">${Number(p.precio_neto).toLocaleString()}</td>
                       <td className="px-3 py-3">{p.iva}%</td>
                       <td className="px-3 py-3">{p.descuento ? <Badge color="bg-green-100 text-green-700">Sí</Badge> : '—'}</td>
                       <td className="px-3 py-3"><StockBadge p={p} /></td>
-                      <td className="px-3 py-3 text-xs text-stone-400">{p.stock_minimo}</td>
-                      <td className="px-3 py-3 text-xs text-stone-400">{p.stock_maximo}</td>
+                      <td className="px-3 py-3 text-sm text-stone-400">{p.stock_minimo}</td>
+                      <td className="px-3 py-3 text-sm text-stone-400">{p.stock_maximo}</td>
                       <td className="px-3 py-3">
-                        <button onClick={() => handleDeleteProducto(p.id!)}
+                        <button onClick={() => handleEditProducto(p.id!)}
                           className="px-3 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200 transition">
-                          Eliminar
+                          Editar
                         </button>
                       </td>
                     </tr>
@@ -759,9 +839,9 @@ function ModuloProductos({ productos, setProductos, categorias, setCategorias }:
                       <td className="px-4 py-3 font-semibold">{c.nombre}</td>
                       <td className="px-4 py-3 text-stone-500">{c.descripcion || '—'}</td>
                       <td className="px-4 py-3">
-                        <button onClick={() => handleDeleteCategoria(c.id!)}
+                        <button onClick={() => handleEditCategoria(c.id!)}
                           className="px-3 py-1 rounded-lg bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200 transition">
-                          Eliminar
+                          Editar
                         </button>
                       </td>
                     </tr>
@@ -1072,10 +1152,10 @@ export default function PerfilArtesano() {
   useEffect(() => { cargarDatos(); }, [cargarDatos]);
 
   return (
-    <div className="min-h-screen bg-amber-50/60 font-sans">
-      <Topbar />
+    <div className="min-h-screen bg-amber-50/60 font-sans text-base">
+      <Topbar/>
       <Sidebar active={tab} onChange={setTab} />
-      <main className="pt-14 pl-40 min-h-screen">
+      <main className="pt-14 pl-40 min-h-screen text-base">
         <div className="max-w-7xl mx-auto px-8 py-8">
           {loading ? (
             <div className="flex items-center justify-center py-20 text-amber-700 text-sm gap-3">

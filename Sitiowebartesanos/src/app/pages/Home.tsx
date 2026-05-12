@@ -1,10 +1,12 @@
 import { Link } from 'react-router';
+import { useAuth } from '../context/AuthContext';
 import { Button } from '../components/ui/button';
 import { Card, CardContent } from '../components/ui/card';
 import { Heart, Truck, Shield, Star } from 'lucide-react';
 import { products } from '../data/products';
 
 export function Home() {
+  const { isAuthenticated } = useAuth();
   const featuredProducts = products.slice(0, 3);
 
   return (
@@ -26,17 +28,15 @@ export function Home() {
               Productos únicos creados por artesanos talentosos. Cada pieza cuenta una historia.
             </p>
             <div className="flex gap-4">
-              <Button size="lg" className="bg-orange-600 hover:bg-orange-700" asChild>
-                <Link to="/catalogo">
-                  Ver Catálogo
-                </Link>
-              </Button>
-              <Button size="lg" className="bg-orange-600 hover:bg-orange-700" asChild>
-                <Link to="/registro">
-                  Registrarse
-                </Link>
-              </Button>
-            </div>
+             <Button size="lg" className="bg-orange-600 hover:bg-orange-700" asChild>
+              <Link to="/catalogo">Ver Catálogo</Link>
+             </Button>
+           {!isAuthenticated && (
+             <Button size="lg" className="bg-orange-600 hover:bg-orange-700" asChild>
+              <Link to="/registro">Registrarse</Link>
+            </Button>
+          )}
+           </div>
           </div>
         </div>
       </section>
